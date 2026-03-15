@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════
+  İNSPEKSİYA VƏ YOXLAMA — Tipik Suallar
+═══════════════════════════════════════════════════════════════
+
+1.  Son inspeksiya nəticələrini göstər — hansı binalar yoxlanılıb?
+
+2.  Ən aşağı bal almış binalar hansılardır?
+
+3.  İnspeksiya vaxtı keçmiş binalar hansılardır? Növbəti yoxlama nə vaxt olmalıdır?
+
+4.  Hər inspektorun neçə yoxlama keçirdiyini göstər.
+
+5.  İnspeksiyada "narahatlıq" qeyd olunmuş binalar hansılardır?
+
+6.  Son inspeksiyada verilmiş tövsiyələrin siyahısını ver.
+
+7.  Ümumi balı 50-dən aşağı olan inspeksiyalar hansılardır?
+
+8.  Hansı binalarda hələ heç inspeksiya keçirilməyib?
+
+9.  İnspeksiya nəticələrini "qənaətbəxş" və "qeyri-qənaətbəxş" üzrə qruplaşdır.
+
+10. Son 6 ayda keçirilmiş inspeksiyaların xülasəsini hazırla.

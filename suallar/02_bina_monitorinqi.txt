@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════
+  BİNA MONİTORİNQİ — Tipik Suallar
+═══════════════════════════════════════════════════════════════
+
+1.  Qəza vəziyyətində olan binalar hansılardır? Hansı məktəblərə aiddir?
+
+2.  Pis vəziyyətdə olan binaların siyahısını ver — tikiliş ili və son təmir ili ilə.
+
+3.  Yanğın siqnalizasiyası olmayan binalar hansılardır?
+
+4.  Generatoru olmayan binaların siyahısını göstər.
+
+5.  Ən qədim binalar hansılardır? Tikiliş ilinə görə sırala.
+
+6.  Son 5 ildə təmir olunmamış binalar hansılardır?
+
+7.  Binalar vəziyyətə görə neçə faiz paylanır — əla, yaxşı, normal, pis, qəza?
+
+8.  Lifti olan binaların siyahısını ver.
+
+9.  Hər məktəbin neçə binası var və onların ümumi sahəsi nə qədərdir?
+
+10. İstilik sistemi olmayan və ya köhnə olan binalar hansılardır?

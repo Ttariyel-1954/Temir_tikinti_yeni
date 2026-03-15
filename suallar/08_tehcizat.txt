@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════
+  TƏCHİZAT — Tipik Suallar
+═══════════════════════════════════════════════════════════════
+
+1.  Təchizatın ümumi siyahısını kateqoriya üzrə göstər.
+
+2.  Zəmanət müddəti bitmiş avadanlıqlar hansılardır?
+
+3.  Vəziyyəti "pis" olan təchizat hansılardır?
+
+4.  Hər məktəbdə hansı təchizat var?
+
+5.  Ən bahalı avadanlıqların siyahısını ver.
+
+6.  Son 1 ildə alınmış təchizatı göstər.
+
+7.  Hər kateqoriyada neçə ədəd avadanlıq var?
+
+8.  Təchizatın ümumi dəyəri nə qədərdir?
+
+9.  Zəmanəti yaxın 3 ayda bitəcək avadanlıqlar hansılardır?
+
+10. Hansı məktəblərdə təchizat çatışmazlığı var — tövsiyə ver.

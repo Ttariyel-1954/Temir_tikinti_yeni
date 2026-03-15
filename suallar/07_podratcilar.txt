@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════
+  PODRATÇILAR — Tipik Suallar
+═══════════════════════════════════════════════════════════════
+
+1.  Podratçıların reytinq üzrə sıralanmış siyahısını göstər.
+
+2.  Ən yüksək reytinqli 3 podratçı kimdir?
+
+3.  Hər podratçının ixtisas sahəsini göstər.
+
+4.  Hansı podratçı hansı layihədə çalışır?
+
+5.  Podratçılara edilmiş ödənişlərin siyahısını ver.
+
+6.  VÖEN-i olan podratçıların tam siyahısını göstər.
+
+7.  Reytinqi 3-dən aşağı olan podratçılar varmı?
+
+8.  Hər podratçının əlaqə məlumatlarını göstər — telefon, email, ünvan.
+
+9.  Ən çox layihədə iştirak edən podratçı kimdir?
+
+10. Yeni podratçı seçimi üçün hansı sahələrdə ehtiyac var — tövsiyə ver.

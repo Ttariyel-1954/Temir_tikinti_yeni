@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════
+  LAYİHƏ İDARƏETMƏSİ — Tipik Suallar
+═══════════════════════════════════════════════════════════════
+
+1.  Hazırda neçə aktiv layihə var və onların ümumi vəziyyəti necədir?
+
+2.  Gecikən layihələrin siyahısını göstər — hər biri nə qədər gecikib?
+
+3.  Kritik prioritetli layihələr hansılardır və kim məsuldur?
+
+4.  "Şuşa məktəb bərpası" layihəsinin ətraflı vəziyyətini göstər.
+
+5.  Son 1 ildə tamamlanan layihələrin siyahısını ver.
+
+6.  Hansı layihələr planlaşdırılır amma hələ başlamayıb?
+
+7.  Dayandırılmış layihələr varmı? Səbəbləri nədir?
+
+8.  Layihələri kateqoriya üzrə qruplaşdır — neçə əsaslı təmir, neçə yeni tikinti var?
+
+9.  Ən yüksək tamamlanma faizinə malik aktiv layihələr hansılardır?
+
+10. Hər layihənin plan müddəti ilə real müddəti arasındakı fərqi hesabla.

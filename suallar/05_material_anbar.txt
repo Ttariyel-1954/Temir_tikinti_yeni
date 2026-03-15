@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════
+  MATERİAL VƏ ANBAR — Tipik Suallar
+═══════════════════════════════════════════════════════════════
+
+1.  Anbarda hansı materiallar minimum həddin altındadır? Təcili sifariş lazımdır?
+
+2.  Materialların kateqoriya üzrə siyahısını göstər.
+
+3.  Ən bahalı 5 materialı göstər — vahid qiyməti ilə birlikdə.
+
+4.  Anbardakı materialların ümumi dəyəri nə qədərdir?
+
+5.  Hər kateqoriyada neçə növ material var?
+
+6.  Sement, armaturu və kərpicin anbar miqdarı nə qədərdir?
+
+7.  Son 1 ayda hansı materialllar layihələrdə istifadə olunub?
+
+8.  Hansı layihə ən çox material sərf edib?
+
+9.  Materiallar arasında ölçü vahidlərini göstər — kq, ton, m², ədəd.
+
+10. Anbar ehtiyatı ilə minimum hədd arasındakı fərqi hər material üçün hesabla.

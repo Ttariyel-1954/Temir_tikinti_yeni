@@ -1,0 +1,19 @@
+# Gizli fayllar - GitHub-a getməməlidir
+.env
+.Renviron
+.Rhistory
+.RData
+.Rproj.user/
+
+# Sistem faylları
+.DS_Store
+*.swp
+*~
+
+# Python cache
+__pycache__/
+*.pyc
+
+# İstifadəçi yaratdığı fayllar
+Cavablar/
+Excel/

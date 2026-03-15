@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Təmir Tikinti İdarəsi - AI İdarəetmə Sistemi</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --primary: #1a56db;
+            --primary-dark: #1e3a8a;
+            --primary-light: #dbeafe;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --success: #16a34a;
+            --success-bg: #f0fdf4;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+
+        /* ─── Header ─── */
+        .header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: white;
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .header h1 { font-size: 22px; font-weight: 700; }
+        .header .subtitle { font-size: 13px; opacity: 0.85; }
+        .header .logo {
+            width: 48px; height: 48px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+        }
+        .status-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .status-dot {
+            width: 8px; height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ─── Layout ─── */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 24px;
+            height: calc(100vh - 80px);
+        }
+
+        /* ─── Dashboard ─── */
+        .dashboard { overflow-y: auto; padding-right: 8px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.15s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card.danger { border-left-color: var(--danger); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-label { font-size: 12px; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 28px; font-weight: 800; margin-top: 4px; color: var(--gray-900); }
+        .stat-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+
+        /* ─── Alerts ─── */
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gray-200);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .alert-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+        .alert-item {
+            padding: 14px 16px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: flex; align-items: flex-start; gap: 10px;
+        }
+        .alert-item.kritik { background: var(--danger-bg); border-left: 4px solid var(--danger); }
+        .alert-item.yüksək { background: var(--warning-bg); border-left: 4px solid var(--warning); }
+        .alert-item.orta { background: var(--primary-light); border-left: 4px solid var(--primary); }
+        .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .alert-text { flex: 1; }
+        .alert-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        .alert-badge.kritik { background: var(--danger); color: white; }
+        .alert-badge.yüksək { background: var(--warning); color: white; }
+        .alert-badge.orta { background: var(--primary); color: white; }
+
+        .no-alerts {
+            text-align: center;
+            padding: 32px;
+            color: var(--success);
+            font-weight: 600;
+            background: var(--success-bg);
+            border-radius: 10px;
+        }
+
+        /* ─── Suggestions ─── */
+        .suggestions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .suggestion-btn {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s;
+            color: var(--gray-700);
+        }
+        .suggestion-btn:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        /* ─── Chat Panel ─── */
+        .chat-panel {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .chat-header {
+            background: var(--primary-dark);
+            color: white;
+            padding: 16px 20px;
+            font-weight: 700;
+            font-size: 15px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .chat-reset {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .chat-reset:hover { background: rgba(255,255,255,0.25); }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            max-width: 90%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.assistant {
+            align-self: flex-start;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            border-bottom-left-radius: 4px;
+        }
+        .message.system {
+            align-self: center;
+            background: var(--warning-bg);
+            color: var(--gray-700);
+            font-size: 13px;
+            text-align: center;
+        }
+        .typing-indicator {
+            align-self: flex-start;
+            padding: 12px 20px;
+            background: var(--gray-100);
+            border-radius: 14px;
+            display: none;
+        }
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px; height: 8px;
+            background: var(--gray-400);
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        .chat-input-area {
+            padding: 14px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input {
+            flex: 1;
+            border: 2px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 14px;
+            outline: none;
+            resize: none;
+            font-family: inherit;
+            min-height: 44px;
+            max-height: 120px;
+        }
+        .chat-input:focus { border-color: var(--primary); }
+        .chat-send {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }
+        .chat-send:hover { background: var(--primary-dark); }
+        .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .chat-panel { height: 600px; }
+        }
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .suggestions { grid-template-columns: 1fr; }
+            .header { padding: 12px 16px; }
+            .container { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <div class="logo">&#127959;</div>
+        <div>
+            <h1>Temir Tikinti Idaresi</h1>
+            <div class="subtitle">Tehsil Nazirliyi | AI Idareetme Sistemi</div>
+        </div>
+    </div>
+    <div class="status-badge">
+        <span class="status-dot"></span>
+        AI Agent Aktiv
+    </div>
+</div>
+
+<div class="container">
+    <!-- Dashboard -->
+    <div class="dashboard">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Mektebler</div>
+                <div class="stat-value">{{ stats.mekteb_sayi }}</div>
+                <div class="stat-sub">aktiv mekteb</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Binalar</div>
+                <div class="stat-value">{{ stats.bina_sayi }}</div>
+                <div class="stat-sub">qeydiyyatda</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Isciler</div>
+                <div class="stat-value">{{ stats.isci_sayi }}</div>
+                <div class="stat-sub">aktiv isci</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Aktiv Layiheler</div>
+                <div class="stat-value">{{ stats.aktiv_layihe }}</div>
+                <div class="stat-sub">icra edilir</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Tamamlanan</div>
+                <div class="stat-value">{{ stats.tamamlanan_layihe }}</div>
+                <div class="stat-sub">layihe bitib</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">Umumi Budce</div>
+                <div class="stat-value">{{ "{:,.0f}".format(stats.umumi_budce) }}</div>
+                <div class="stat-sub">AZN planlasdirilmis</div>
+            </div>
+            <div class="stat-card {% if stats.kritik_layiheler > 0 %}danger{% endif %}">
+                <div class="stat-label">Kritik Layiheler</div>
+                <div class="stat-value">{{ stats.kritik_layiheler }}</div>
+                <div class="stat-sub">teili tedbirler</div>
+            </div>
+            <div class="stat-card {% if stats.pis_veziyyetli_binalar > 0 %}danger{% endif %}">
+                <div class="stat-label">Problem Binalar</div>
+                <div class="stat-value">{{ stats.pis_veziyyetli_binalar }}</div>
+                <div class="stat-sub">pis/qeza veziyyetde</div>
+            </div>
+        </div>
+
+        <!-- Xeberdarliqlar -->
+        <div class="section-title">&#9888;&#65039; Xeberdarlilar ve Bildirisler</div>
+        {% if alerts %}
+        <div class="alert-list">
+            {% for alert in alerts %}
+            <div class="alert-item {{ alert.seviye }}">
+                <span class="alert-icon">
+                    {% if alert.seviye == 'kritik' %}&#128308;{% elif alert.seviye == 'yüksək' %}&#128992;{% else %}&#128309;{% endif %}
+                </span>
+                <span class="alert-text">{{ alert.mesaj }}</span>
+                <span class="alert-badge {{ alert.seviye }}">{{ alert.seviye }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-alerts">&#9989; Heç bir xəbərdarlıq yoxdur. Sistem normal işləyir.</div>
+        {% endif %}
+
+        <!-- Hazır suallar -->
+        <div class="section-title">&#128161; Hecbir sual gozlemeden sorusin</div>
+        <div class="suggestions">
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Ümumi hesabat hazırla</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Gecikən layihələr hansılardır?</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Büdcə vəziyyəti necədir?</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Qəza vəziyyətli binalar haqqında məlumat</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Bölgələr üzrə statistika göstər</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Anbarda hansı materiallar azdır?</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Qarabağ bölgəsindəki layihələr</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">İşçi heyəti haqqında məlumat</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Podratçıların reytinqi</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">İnspeksiya nəticələri</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">Ən bahalı layihələr hansılardır?</button>
+            <button class="suggestion-btn" onclick="sendSuggestion(this)">İdarənin strukturunu göstər</button>
+        </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div class="chat-panel">
+        <div class="chat-header">
+            <span>&#129302; AI Kömekci</span>
+            <button class="chat-reset" onclick="resetChat()">Yeni söhbət</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="message system">
+                Salam! Mən Təmir Tikinti İdarəsinin AI köməkçisiyəm.
+                Bazadakı bütün məlumatları təhlil edib sizə kömək edə bilərəm.
+                Sualınızı yazın və ya soldakı düymələrdən istifadə edin.
+            </div>
+        </div>
+        <div class="typing-indicator" id="typing">
+            <span></span><span></span><span></span>
+        </div>
+        <div class="chat-input-area">
+            <textarea class="chat-input" id="chatInput" placeholder="Sualınızı yazın..." rows="1"
+                      onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+            <button class="chat-send" id="sendBtn" onclick="sendMessage()">Göndər</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const typing = document.getElementById('typing');
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    function addMessage(text, role) {
+        const div = document.createElement('div');
+        div.className = 'message ' + role;
+        div.textContent = text;
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function setLoading(state) {
+        typing.style.display = state ? 'block' : 'none';
+        sendBtn.disabled = state;
+        chatInput.disabled = state;
+        if (state) chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        addMessage(text, 'user');
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+        setLoading(true);
+
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text })
+            });
+            const data = await res.json();
+            if (data.error) {
+                addMessage('Xəta: ' + data.error, 'system');
+            } else {
+                addMessage(data.reply, 'assistant');
+            }
+        } catch (e) {
+            addMessage('Bağlantı xətası. Server işləyir?', 'system');
+        }
+        setLoading(false);
+        chatInput.focus();
+    }
+
+    function sendSuggestion(btn) {
+        chatInput.value = btn.textContent;
+        sendMessage();
+    }
+
+    async function resetChat() {
+        await fetch('/reset', { method: 'POST' });
+        chatMessages.innerHTML = '<div class="message system">Söhbət sıfırlandı. Yeni sualınızı yazın.</div>';
+    }
+</script>
+
+</body>
+</html>
