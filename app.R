@@ -6,7 +6,6 @@
 library(shiny)
 library(bslib)
 library(DBI)
-library(RPostgres)
 library(pool)
 library(DT)
 library(dplyr)
@@ -39,8 +38,12 @@ if (file.exists(env_file)) {
 # ══════════════════════════════════════════════════════════════════════
 
 db_ok <- FALSE
+db_type <- "none"  # "postgres", "sqlite", "none"
 pool <- NULL
+
+# 1) PostgreSQL cəhdi
 tryCatch({
+  library(RPostgres)
   db_args <- list(
     drv    = RPostgres::Postgres(),
     dbname = Sys.getenv("DB_NAME", "temir_tikinti"),
@@ -50,20 +53,54 @@ tryCatch({
   if (nzchar(Sys.getenv("DB_USER")))     db_args$user     <- Sys.getenv("DB_USER")
   if (nzchar(Sys.getenv("DB_PASSWORD"))) db_args$password <- Sys.getenv("DB_PASSWORD")
   pool <- do.call(dbPool, db_args)
-  # Test connection
   dbGetQuery(pool, "SELECT 1")
-  db_ok <- TRUE
-  cat("DB qosuldu:", Sys.getenv("DB_HOST", "localhost"), "\n")
+  db_ok <- TRUE; db_type <- "postgres"
+  cat("PostgreSQL qosuldu:", Sys.getenv("DB_HOST", "localhost"), "\n")
 }, error = function(e) {
-  cat("DB XETA:", e$message, "\n")
-  cat("Tetbiq DB-siz yuklenecek.\n")
+  cat("PostgreSQL yoxdur:", e$message, "\n")
 })
+
+# 2) SQLite fallback (demo.sqlite)
+if (!db_ok) {
+  tryCatch({
+    library(RSQLite)
+    sqlite_path <- file.path(getwd(), "demo.sqlite")
+    if (file.exists(sqlite_path)) {
+      pool <- dbPool(drv = RSQLite::SQLite(), dbname = sqlite_path)
+      dbGetQuery(pool, "SELECT 1")
+      db_ok <- TRUE; db_type <- "sqlite"
+      cat("SQLite demo baza yuklendi:", sqlite_path, "\n")
+    } else {
+      cat("demo.sqlite tapilmadi.\n")
+    }
+  }, error = function(e) {
+    cat("SQLite xeta:", e$message, "\n")
+  })
+}
+
 onStop(function() { if (!is.null(pool)) tryCatch(poolClose(pool), error=function(e){}) })
 
 # ── Sorğular ──────────────────────────────────────────────────────────
 
+fix_sql <- function(sql) {
+  if (db_type == "sqlite") {
+    # SQLite-da ::int, ::text cast yoxdur
+    sql <- gsub("::\\w+", "", sql)
+    # SQLite-da boolean TRUE/FALSE yox, 1/0 var
+    sql <- gsub("\\bTRUE\\b", "1", sql)
+    sql <- gsub("\\bFALSE\\b", "0", sql)
+    # SQLite-da $1,$2 parametr yoxdur — ? istifadə edir
+    sql <- gsub("\\$\\d+", "?", sql)
+    # SQLite-da escaped dırnaq lazım deyil
+    sql <- gsub('"', '', sql)
+    # CURRENT_DATE SQLite-da date() olaraq da işləyir amma CURRENT_DATE dəstəklənir
+  }
+  sql
+}
+
 safe_query <- function(sql, params = NULL) {
   if (!db_ok || is.null(pool)) return(data.frame())
+  sql <- fix_sql(sql)
   tryCatch({
     if (is.null(params)) dbGetQuery(pool, sql) else dbGetQuery(pool, sql, params = params)
   }, error = function(e) { cat("SQL XETA:", e$message, "\n"); data.frame() })
@@ -71,19 +108,19 @@ safe_query <- function(sql, params = NULL) {
 
 get_stats <- function() {
   if (!db_ok) return(list(mekteb=0,bina=0,isci=0,aktiv=0,tamamlan=0,budce=0,xerc=0,kritik=0,problem=0,material=0,az_mat=0))
-  qn <- function(sql) as.numeric(dbGetQuery(pool, sql)$n)
+  qn <- function(sql) { r <- safe_query(sql); if(nrow(r)>0) as.numeric(r$n) else 0 }
   list(
-    mekteb   = qn("SELECT count(*)::int as n FROM mektebler WHERE aktivdir"),
-    bina     = qn("SELECT count(*)::int as n FROM binalar WHERE aktivdir"),
-    isci     = qn("SELECT count(*)::int as n FROM isciler WHERE aktivdir"),
-    aktiv    = qn("SELECT count(*)::int as n FROM layiheler WHERE veziyyet NOT IN ('tamamlanıb','ləğv edilib')"),
-    tamamlan = qn("SELECT count(*)::int as n FROM layiheler WHERE veziyyet = 'tamamlanıb'"),
+    mekteb   = qn("SELECT count(*) as n FROM mektebler WHERE aktivdir"),
+    bina     = qn("SELECT count(*) as n FROM binalar WHERE aktivdir"),
+    isci     = qn("SELECT count(*) as n FROM isciler WHERE aktivdir"),
+    aktiv    = qn("SELECT count(*) as n FROM layiheler WHERE veziyyet NOT IN ('tamamlanıb','ləğv edilib')"),
+    tamamlan = qn("SELECT count(*) as n FROM layiheler WHERE veziyyet = 'tamamlanıb'"),
     budce    = qn("SELECT COALESCE(sum(plan_budce),0) as n FROM layiheler"),
     xerc     = qn("SELECT COALESCE(sum(real_xerc),0) as n FROM layiheler"),
-    kritik   = qn("SELECT count(*)::int as n FROM layiheler WHERE prioritet='kritik' AND veziyyet!='tamamlanıb'"),
-    problem  = qn("SELECT count(*)::int as n FROM binalar WHERE veziyyet IN ('pis','qəza') AND aktivdir"),
-    material = qn("SELECT count(*)::int as n FROM materiallar WHERE aktivdir"),
-    az_mat   = qn("SELECT count(*)::int as n FROM materiallar WHERE anbar_sayi <= minimum_say AND aktivdir")
+    kritik   = qn("SELECT count(*) as n FROM layiheler WHERE prioritet='kritik' AND veziyyet!='tamamlanıb'"),
+    problem  = qn("SELECT count(*) as n FROM binalar WHERE veziyyet IN ('pis','qəza') AND aktivdir"),
+    material = qn("SELECT count(*) as n FROM materiallar WHERE aktivdir"),
+    az_mat   = qn("SELECT count(*) as n FROM materiallar WHERE anbar_sayi <= minimum_say AND aktivdir")
   )
 }
 
@@ -268,7 +305,7 @@ execute_ai_tool <- function(tool_name, tool_input) {
       "run_custom_query"={ sql<-trimws(tool_input$sql)
         if(!db_ok) list(error="Baza qoşulmayıb.")
         else if(!grepl("^SELECT",sql,ignore.case=TRUE)) list(error="Yalnız SELECT icazəlidir.")
-        else tryCatch(dbGetQuery(pool,sql), error=function(e) list(error=e$message)) },
+        else tryCatch(dbGetQuery(pool, fix_sql(sql)), error=function(e) list(error=e$message)) },
       list(error=paste("Naməlum:",tool_name)))
     toJSON(result, auto_unbox=TRUE, pretty=FALSE, na="null")
   }, error=function(e) toJSON(list(error=e$message), auto_unbox=TRUE))

@@ -33,6 +33,6 @@ rsconnect::deployApp(
   appDir    = ".",
   appName   = "temir-tikinti-ai",
   appTitle  = "Təmir Tikinti İdarəsi - AI Sistemi",
-  appFiles  = c("app.R", "global.R"),
+  appFiles  = c("app.R", "global.R", "demo.sqlite"),
   forceUpdate = TRUE
 )

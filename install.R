@@ -1,0 +1,15 @@
+install.packages(c(
+  "shiny",
+  "bslib",
+  "DBI",
+  "RSQLite",
+  "pool",
+  "DT",
+  "dplyr",
+  "plotly",
+  "httr2",
+  "jsonlite",
+  "shinyjs",
+  "shinycssloaders",
+  "openxlsx"
+))

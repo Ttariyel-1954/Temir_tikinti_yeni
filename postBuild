@@ -1,0 +1,3 @@
+#!/bin/bash
+# shiny-server proxy üçün
+pip install jupyter-shiny-proxy 2>/dev/null || pip install jupyter-rsession-proxy 2>/dev/null || true

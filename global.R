@@ -1,12 +1,12 @@
 # ══════════════════════════════════════════════════════════════════════
 # Təmir Tikinti İdarəsi — Paket yükləmə
-# Shinyapps.io bu fayldan asılılıqları aşkarlayır
+# Shinyapps.io / Binder bu fayldan asılılıqları aşkarlayır
 # ══════════════════════════════════════════════════════════════════════
 
 library(shiny)
 library(bslib)
 library(DBI)
-library(RPostgres)
+library(RSQLite)
 library(pool)
 library(DT)
 library(dplyr)
@@ -16,3 +16,6 @@ library(jsonlite)
 library(shinyjs)
 library(shinycssloaders)
 library(openxlsx)
+
+# PostgreSQL varsa yüklə (Binder-da yoxdur)
+tryCatch(library(RPostgres), error = function(e) message("RPostgres yoxdur — SQLite rejimi"))
