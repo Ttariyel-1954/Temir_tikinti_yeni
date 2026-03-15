@@ -38,20 +38,39 @@ if (file.exists(env_file)) {
 #  1. DATABASE
 # ══════════════════════════════════════════════════════════════════════
 
-db_args <- list(
-  drv    = RPostgres::Postgres(),
-  dbname = Sys.getenv("DB_NAME", "temir_tikinti"),
-  host   = Sys.getenv("DB_HOST", "localhost"),
-  port   = as.integer(Sys.getenv("DB_PORT", "5432"))
-)
-if (nzchar(Sys.getenv("DB_USER")))     db_args$user     <- Sys.getenv("DB_USER")
-if (nzchar(Sys.getenv("DB_PASSWORD"))) db_args$password <- Sys.getenv("DB_PASSWORD")
-pool <- do.call(dbPool, db_args)
-onStop(function() poolClose(pool))
+db_ok <- FALSE
+pool <- NULL
+tryCatch({
+  db_args <- list(
+    drv    = RPostgres::Postgres(),
+    dbname = Sys.getenv("DB_NAME", "temir_tikinti"),
+    host   = Sys.getenv("DB_HOST", "localhost"),
+    port   = as.integer(Sys.getenv("DB_PORT", "5432"))
+  )
+  if (nzchar(Sys.getenv("DB_USER")))     db_args$user     <- Sys.getenv("DB_USER")
+  if (nzchar(Sys.getenv("DB_PASSWORD"))) db_args$password <- Sys.getenv("DB_PASSWORD")
+  pool <- do.call(dbPool, db_args)
+  # Test connection
+  dbGetQuery(pool, "SELECT 1")
+  db_ok <- TRUE
+  cat("DB qosuldu:", Sys.getenv("DB_HOST", "localhost"), "\n")
+}, error = function(e) {
+  cat("DB XETA:", e$message, "\n")
+  cat("Tetbiq DB-siz yuklenecek.\n")
+})
+onStop(function() { if (!is.null(pool)) tryCatch(poolClose(pool), error=function(e){}) })
 
 # ── Sorğular ──────────────────────────────────────────────────────────
 
+safe_query <- function(sql, params = NULL) {
+  if (!db_ok || is.null(pool)) return(data.frame())
+  tryCatch({
+    if (is.null(params)) dbGetQuery(pool, sql) else dbGetQuery(pool, sql, params = params)
+  }, error = function(e) { cat("SQL XETA:", e$message, "\n"); data.frame() })
+}
+
 get_stats <- function() {
+  if (!db_ok) return(list(mekteb=0,bina=0,isci=0,aktiv=0,tamamlan=0,budce=0,xerc=0,kritik=0,problem=0,material=0,az_mat=0))
   qn <- function(sql) as.numeric(dbGetQuery(pool, sql)$n)
   list(
     mekteb   = qn("SELECT count(*)::int as n FROM mektebler WHERE aktivdir"),
@@ -69,6 +88,7 @@ get_stats <- function() {
 }
 
 get_layiheler <- function(vez = NULL, pri = NULL) {
+  if (!db_ok) return(data.frame())
   sql <- "SELECT l.id, l.ad AS layihe, l.veziyyet, l.prioritet,
           l.plan_baslama, l.plan_bitis, l.plan_budce, l.real_xerc,
           l.tamamlanma_faizi AS faiz, b.ad AS bina, m.ad AS mekteb,
@@ -81,48 +101,50 @@ get_layiheler <- function(vez = NULL, pri = NULL) {
   if (!is.null(vez) && vez != "Hamısı") { sql <- paste0(sql, " AND l.veziyyet=$1"); params <- c(params, vez) }
   if (!is.null(pri) && pri != "Hamısı") { sql <- paste0(sql, " AND l.prioritet=$", length(params)+1); params <- c(params, pri) }
   sql <- paste0(sql, " ORDER BY l.plan_baslama DESC")
-  if (length(params) > 0) dbGetQuery(pool, sql, params = params) else dbGetQuery(pool, sql)
+  if (length(params) > 0) safe_query(sql, params) else safe_query(sql)
 }
 
 get_mektebler <- function(bolge = NULL) {
+  if (!db_ok) return(data.frame())
   sql <- "SELECT m.id, m.ad, m.kod, m.tip, m.unvan, m.sagird_sayi, m.muellim_sayi, m.sinif_sayi,
           COALESCE(r.ad,'-') AS rayon, bo.ad AS bolge, m.qarabag_qayidis
    FROM mektebler m LEFT JOIN rayon_sehirler r ON m.rayon_id=r.id
    LEFT JOIN bolgeler bo ON m.bolge_id=bo.id WHERE m.aktivdir"
   if (!is.null(bolge) && bolge != "Hamısı") {
-    dbGetQuery(pool, paste0(sql, " AND bo.ad=$1 ORDER BY m.ad"), params = list(bolge))
-  } else { dbGetQuery(pool, paste0(sql, " ORDER BY bo.ad, m.ad")) }
+    safe_query(paste0(sql, " AND bo.ad=$1 ORDER BY m.ad"), list(bolge))
+  } else { safe_query(paste0(sql, " ORDER BY bo.ad, m.ad")) }
 }
 
 get_binalar <- function(vez = NULL) {
+  if (!db_ok) return(data.frame())
   sql <- "SELECT b.id, b.ad AS bina, b.bina_novu, b.tikilis_ili, b.mertebe_sayi,
           b.umumi_sahe, b.sinif_otaq_sayi, b.veziyyet, b.dam_tipi, b.istilik_sistemi,
           b.son_temir_ili, b.yangin_siqnal, b.generator_var, m.ad AS mekteb
    FROM binalar b JOIN mektebler m ON b.mekteb_id=m.id WHERE b.aktivdir"
   if (!is.null(vez) && vez != "Hamısı") {
-    dbGetQuery(pool, paste0(sql, " AND b.veziyyet=$1 ORDER BY m.ad"), params = list(vez))
-  } else { dbGetQuery(pool, paste0(sql, " ORDER BY b.veziyyet DESC, m.ad")) }
+    safe_query(paste0(sql, " AND b.veziyyet=$1 ORDER BY m.ad"), list(vez))
+  } else { safe_query(paste0(sql, " ORDER BY b.veziyyet DESC, m.ad")) }
 }
 
 get_isciler <- function() {
-  dbGetQuery(pool, "SELECT i.id, i.ad, i.soyad, i.ata_adi, i.ise_baslama, i.maas,
+  safe_query("SELECT i.id, i.ad, i.soyad, i.ata_adi, i.ise_baslama, i.maas,
    i.telefon, i.email, v.ad AS vezife, v.kateqoriya, COALESCE(b.ad,'-') AS bolge
    FROM isciler i JOIN vezifeler v ON i.vezife_id=v.id
    LEFT JOIN bolgeler b ON i.bolge_id=b.id WHERE i.aktivdir ORDER BY v.kateqoriya, i.soyad")
 }
 
 get_materiallar <- function() {
-  dbGetQuery(pool, "SELECT id, ad, kateqoriya, olcu_vahidi, vahid_qiymeti, anbar_sayi, minimum_say,
+  safe_query("SELECT id, ad, kateqoriya, olcu_vahidi, vahid_qiymeti, anbar_sayi, minimum_say,
    CASE WHEN anbar_sayi<=minimum_say THEN 'Bəli' ELSE 'Xeyr' END AS az_qalib
    FROM materiallar WHERE aktivdir ORDER BY kateqoriya, ad")
 }
 
 get_podratcilar <- function() {
-  dbGetQuery(pool, "SELECT id,ad,voen,telefon,email,ixtisas,reytinq FROM podratcilar WHERE aktivdir ORDER BY reytinq DESC")
+  safe_query("SELECT id,ad,voen,telefon,email,ixtisas,reytinq FROM podratcilar WHERE aktivdir ORDER BY reytinq DESC")
 }
 
 get_inspeksiyalar <- function() {
-  dbGetQuery(pool, "SELECT ins.id, ins.tarix, ins.netice, ins.umumi_bal, ins.qeydler,
+  safe_query("SELECT ins.id, ins.tarix, ins.netice, ins.umumi_bal, ins.qeydler,
    ins.narahatliqlar, ins.tovsiyeler, ins.novbeti_tarix, b.ad AS bina, m.ad AS mekteb,
    COALESCE(i.ad||' '||i.soyad,'-') AS inspektor
    FROM inspeksiyalar ins JOIN binalar b ON ins.bina_id=b.id
@@ -130,7 +152,7 @@ get_inspeksiyalar <- function() {
 }
 
 get_bolge_stat <- function() {
-  dbGetQuery(pool, "SELECT bo.ad AS bolge, bo.emsal,
+  safe_query("SELECT bo.ad AS bolge, bo.emsal,
    count(DISTINCT m.id)::int AS mekteb_sayi, count(DISTINCT b.id)::int AS bina_sayi,
    count(DISTINCT l.id)::int AS layihe_sayi, COALESCE(SUM(l.plan_budce),0) AS umumi_budce,
    count(DISTINCT CASE WHEN b.veziyyet IN ('pis','qəza') THEN b.id END)::int AS problem_bina
@@ -141,38 +163,39 @@ get_bolge_stat <- function() {
 }
 
 get_tehcizat <- function() {
-  dbGetQuery(pool, "SELECT t.id,t.ad,t.kateqoriya,t.miqdar,t.vahid_qiymeti,
+  safe_query("SELECT t.id,t.ad,t.kateqoriya,t.miqdar,t.vahid_qiymeti,
    t.\"alış_tarixi\",t.zemanet_bitis,t.veziyyet, m.ad AS mekteb
    FROM tehcizat t JOIN mektebler m ON t.mekteb_id=m.id ORDER BY t.kateqoriya,t.ad")
 }
 
 get_senedler <- function() {
-  dbGetQuery(pool, "SELECT s.id,s.sened_novu,s.ad,s.sened_no,s.tarix,
+  safe_query("SELECT s.id,s.sened_novu,s.ad,s.sened_no,s.tarix,
    COALESCE(l.ad,'-') AS layihe, COALESCE(m.ad,'-') AS mekteb
    FROM senedler s LEFT JOIN layiheler l ON s.layihe_id=l.id
    LEFT JOIN mektebler m ON s.mekteb_id=m.id ORDER BY s.tarix DESC")
 }
 
 get_bolmeler <- function() {
-  dbGetQuery(pool, "SELECT b.id,b.ad,b.kod,b.seviyye, COALESCE(p.ad,'-') AS ust_bolme,
+  safe_query("SELECT b.id,b.ad,b.kod,b.seviyye, COALESCE(p.ad,'-') AS ust_bolme,
    COALESCE(i.ad||' '||i.soyad,'-') AS sef FROM bolmeler b
    LEFT JOIN bolmeler p ON b.ust_id=p.id LEFT JOIN isciler i ON b.sef_id=i.id
    WHERE b.aktivdir ORDER BY b.seviyye, b.ad")
 }
 
 get_xeberdarlilar <- function() {
+  if (!db_ok) return(list())
   alerts <- list()
-  geciken <- dbGetQuery(pool, "SELECT ad, plan_bitis, tamamlanma_faizi FROM layiheler
+  geciken <- safe_query("SELECT ad, plan_bitis, tamamlanma_faizi FROM layiheler
    WHERE plan_bitis < CURRENT_DATE AND veziyyet NOT IN ('tamamlanıb','ləğv edilib')")
   for (i in seq_len(nrow(geciken)))
     alerts[[length(alerts)+1]] <- list(tip="gecikme", seviye="kritik",
       mesaj=sprintf("'%s' — %s tarixində bitməli idi, hələ %d%% tamamlanıb",
                     geciken$ad[i], geciken$plan_bitis[i], geciken$tamamlanma_faizi[i]))
-  asim <- dbGetQuery(pool, "SELECT ad,plan_budce,real_xerc FROM layiheler WHERE real_xerc>plan_budce AND plan_budce>0")
+  asim <- safe_query("SELECT ad,plan_budce,real_xerc FROM layiheler WHERE real_xerc>plan_budce AND plan_budce>0")
   for (i in seq_len(nrow(asim)))
     alerts[[length(alerts)+1]] <- list(tip="budce", seviye="yuksek",
       mesaj=sprintf("'%s' — büdcə aşımı: plan %.0f, real %.0f AZN", asim$ad[i], asim$plan_budce[i], asim$real_xerc[i]))
-  qeza <- dbGetQuery(pool, "SELECT b.ad AS bina, m.ad AS mekteb FROM binalar b
+  qeza <- safe_query("SELECT b.ad AS bina, m.ad AS mekteb FROM binalar b
    JOIN mektebler m ON b.mekteb_id=m.id WHERE b.veziyyet='qəza' AND b.aktivdir")
   for (i in seq_len(nrow(qeza)))
     alerts[[length(alerts)+1]] <- list(tip="qeza", seviye="kritik",
@@ -243,7 +266,8 @@ execute_ai_tool <- function(tool_name, tool_input) {
       "get_tehcizat"=get_tehcizat(), "get_senedler"=get_senedler(), "get_bolmeler"=get_bolmeler(),
       "get_xeberdarlilar"=get_xeberdarlilar(),
       "run_custom_query"={ sql<-trimws(tool_input$sql)
-        if(!grepl("^SELECT",sql,ignore.case=TRUE)) list(error="Yalnız SELECT icazəlidir.")
+        if(!db_ok) list(error="Baza qoşulmayıb.")
+        else if(!grepl("^SELECT",sql,ignore.case=TRUE)) list(error="Yalnız SELECT icazəlidir.")
         else tryCatch(dbGetQuery(pool,sql), error=function(e) list(error=e$message)) },
       list(error=paste("Naməlum:",tool_name)))
     toJSON(result, auto_unbox=TRUE, pretty=FALSE, na="null")
@@ -961,8 +985,10 @@ server <- function(input, output, session) {
 
   # ── Bölgə doldur ──
   observe({
-    bs <- dbGetQuery(pool, "SELECT ad FROM bolgeler WHERE aktivdir ORDER BY ad")$ad
-    updateSelectInput(session, "fb", choices = c("Hamısı", bs))
+    if (db_ok) {
+      bs <- safe_query("SELECT ad FROM bolgeler WHERE aktivdir ORDER BY ad")$ad
+      updateSelectInput(session, "fb", choices = c("Hamısı", bs))
+    }
   })
 
   # ── Sual seçici: kateqoriya dəyişdikdə sualları yenilə ──
@@ -978,6 +1004,8 @@ server <- function(input, output, session) {
 
   # ── Alerts ──
   output$alerts_ui <- renderUI({
+    if (!db_ok) return(div(class="no-alerts", style="color:#d97706;",
+      HTML("&#9888; Baza qoşulmayıb. Shinyapps.io Settings → Environment Variables bölməsinə DB məlumatlarını daxil edin.")))
     als <- get_xeberdarlilar()
     if (length(als) == 0) return(div(class="no-alerts", HTML("&#9989; Xəbərdarlıq yoxdur. Sistem normaldır.")))
     tags$div(lapply(als, function(a) {
@@ -1011,25 +1039,29 @@ server <- function(input, output, session) {
   # ── Charts ──
   output$ch1 <- renderPlotly({
     df <- get_bolge_stat()
+    if (nrow(df) == 0) return(plot_ly() |> layout(title="Baza qoşulmayıb"))
     plot_ly(df, x=~bolge, y=~mekteb_sayi, type="bar", marker=list(color="#0f4c81",
       line=list(color="#0a3660",width=1))) |>
       layout(xaxis=list(title=""), yaxis=list(title="Say"), margin=list(b=80))
   })
   output$ch2 <- renderPlotly({
-    df <- dbGetQuery(pool, "SELECT prioritet, count(*)::int as say FROM layiheler GROUP BY prioritet")
+    df <- safe_query("SELECT prioritet, count(*)::int as say FROM layiheler GROUP BY prioritet")
+    if (nrow(df) == 0) return(plot_ly() |> layout(title="Baza qoşulmayıb"))
     plot_ly(df, labels=~prioritet, values=~say, type="pie",
       marker=list(colors=c("kritik"="#ef4444","yüksək"="#f59e0b","normal"="#3b82f6","aşağı"="#9ca3af")[df$prioritet]),
       textinfo="label+value") |> layout(showlegend=FALSE)
   })
   output$ch3 <- renderPlotly({
-    df <- dbGetQuery(pool, "SELECT ad,plan_budce,real_xerc FROM layiheler WHERE plan_budce>0 ORDER BY plan_budce DESC LIMIT 8")
+    df <- safe_query("SELECT ad,plan_budce,real_xerc FROM layiheler WHERE plan_budce>0 ORDER BY plan_budce DESC LIMIT 8")
+    if (nrow(df) == 0) return(plot_ly() |> layout(title="Baza qoşulmayıb"))
     plot_ly(df,x=~ad,y=~plan_budce,type="bar",name="Plan",marker=list(color="#0f4c81")) |>
       add_trace(y=~real_xerc,name="Real",marker=list(color="#f59e0b")) |>
       layout(barmode="group",xaxis=list(title="",tickangle=-30),yaxis=list(title="AZN"),
         margin=list(b=120),legend=list(orientation="h"))
   })
   output$ch4 <- renderPlotly({
-    df <- dbGetQuery(pool, "SELECT veziyyet, count(*)::int as say FROM binalar WHERE aktivdir GROUP BY veziyyet")
+    df <- safe_query("SELECT veziyyet, count(*)::int as say FROM binalar WHERE aktivdir GROUP BY veziyyet")
+    if (nrow(df) == 0) return(plot_ly() |> layout(title="Baza qoşulmayıb"))
     plot_ly(df,labels=~veziyyet,values=~say,type="pie",
       marker=list(colors=c("əla"="#059669","yaxşı"="#34d399","normal"="#fbbf24","pis"="#f97316","qəza"="#ef4444")[df$veziyyet]),
       textinfo="label+value") |> layout(showlegend=FALSE)
